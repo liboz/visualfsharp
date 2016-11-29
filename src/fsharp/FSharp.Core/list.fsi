@@ -677,6 +677,15 @@ namespace Microsoft.FSharp.Collections
         [<CompiledName("SortBy")>]
         val sortBy: projection:('T -> 'Key) -> list:'T list -> 'T list when 'Key : comparison
 
+
+        /// <summary>Sorts the given list using Operators.compare.</summary>
+        ///
+        /// <remarks>This is a stable sort, i.e. the original order of equal elements is preserved.</remarks>
+        /// <param name="list">The input list.</param>
+        /// <returns>The sorted list.</returns>
+        [<CompiledName("NewSort")>]
+        val newSort: list:'T list -> 'T list when 'T : comparison
+
         /// <summary>Sorts the given list using Operators.compare.</summary>
         ///
         /// <remarks>This is a stable sort, i.e. the original order of equal elements is preserved.</remarks>

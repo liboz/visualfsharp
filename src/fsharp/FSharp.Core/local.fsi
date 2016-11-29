@@ -62,6 +62,7 @@ module internal List =
     val takeWhile : ('T -> bool) -> 'T list -> 'T list
     val toArray : 'T list -> 'T[]
     val inline ofSeq : seq<'T> -> 'T List
+    val sort: list:'T list -> System.Collections.Generic.IComparer<'T> -> 'T list when 'T : comparison
     val splitAt : int -> 'T list -> ('T list * 'T list)
     val truncate : int -> 'T list -> 'T list
 

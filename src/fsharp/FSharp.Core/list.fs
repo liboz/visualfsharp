@@ -501,7 +501,18 @@ namespace Microsoft.FSharp.Collections
                 let array = Microsoft.FSharp.Primitives.Basics.List.toArray xs
                 Microsoft.FSharp.Primitives.Basics.Array.stableSortInPlaceBy f array
                 Microsoft.FSharp.Primitives.Basics.List.ofArray array
-            
+        
+        [<CompiledName("NewSort")>]
+        let newSort xs = 
+            match xs with 
+            | [] | [_] -> xs
+            | _ -> 
+                let copiedList = xs
+                let c = LanguagePrimitives.FastGenericComparerCanBeNull<_>
+                match c with
+                | null -> Microsoft.FSharp.Primitives.Basics.List.sort copiedList Comparer<_>.Default
+                | _ -> Microsoft.FSharp.Primitives.Basics.List.sort copiedList c
+
         [<CompiledName("Sort")>]
         let sort xs =
             match xs with 

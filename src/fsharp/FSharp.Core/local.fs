@@ -96,6 +96,7 @@ module internal List =
 
     // optimized mutation-based implementation. This code is only valid in fslib, where mutation of private
     // tail cons cells is permitted in carefully written library code.
+    let inline setNullTail cons = cons.(::).1 <- (# "ldnull" : 'T list #)
     let inline setFreshConsTail cons t = cons.(::).1 <- t
     let inline freshConsNoTail h = h :: (# "ldnull" : 'T list #)
 
@@ -143,6 +144,95 @@ module internal List =
             distinctByToFreshConsTail cons hashSet keyf rest
             cons
     
+    let rec mergeRec xlist ylist cons (c: IComparer<_>) = 
+            match xlist, ylist with
+            | [], _ -> setFreshConsTail cons ylist
+            | _, [] -> setFreshConsTail cons xlist
+            | x::xs, y::ys -> if c.Compare(x, y) <= 0 then
+                                  setNullTail xlist
+                                  setFreshConsTail cons xlist
+                                  mergeRec xs ylist xlist c
+                              else
+                                  setNullTail ylist
+                                  setFreshConsTail cons ylist
+                                  mergeRec xlist ys ylist c
+
+    let inline merge xlist ylist (c: IComparer<_>) =
+        match xlist, ylist with
+            | [], _ -> ylist
+            | _, [] -> xlist
+            | x::xs, y::ys -> if c.Compare(x,y) <= 0 then
+                                  setNullTail xlist
+                                  mergeRec xs ylist xlist c
+                                  xlist
+                              else
+                                  setNullTail ylist
+                                  mergeRec xlist ys ylist c
+                                  ylist
+
+    let rec splitRec index alist cons = 
+            match alist, index with
+            | [], _ -> setFreshConsTail cons []
+                       alist
+            | _, 0 -> setFreshConsTail cons []
+                      alist
+            | _::t, _-> setNullTail alist
+                        setFreshConsTail cons alist
+                        splitRec (index - 1) t alist
+
+    let inline split index alist acc =   
+        match alist, index with
+            | [], _ -> alist
+            | _, 0 -> alist
+            | _::t , 1 -> setFreshConsTail alist []
+                          setFreshConsTail acc alist
+                          t
+            | _::_::t , 2 -> 
+                          setFreshConsTail alist.Tail []
+                          setFreshConsTail acc alist
+                          t
+            | _::t , _ -> setNullTail alist
+                          match acc with
+                          | [] -> let rest = splitRec (index - 1) t alist
+                                  rest
+                          | _ -> setFreshConsTail acc alist
+                                 let rest = splitRec index t alist
+                                 rest
+    let inline sort2 h1 h2 (alist: 'T list) (c: IComparer<_>) =
+        if c.Compare(h1,h2) <= 0 then
+            alist
+        else
+            let t = alist.Tail
+            setFreshConsTail alist []
+            setFreshConsTail t alist
+            t
+
+    let rec sortImpl alist acc mergeSize c =
+            match alist with
+            | [] -> acc
+            | _::[] -> merge alist acc c
+            | h1::h2::[] -> let sorted2 = sort2 h1 h2 alist c
+                            match acc with
+                            | [] -> sorted2
+                            | _ -> merge sorted2 acc c
+            | _::t -> let rest = match acc with
+                                 | [] -> setNullTail alist
+                                         split mergeSize t alist
+                                 | _ ->  split mergeSize alist []
+                      let sortedylist = sortImpl alist [] 1 c
+                      let newAcc = merge acc sortedylist c
+                      sortImpl rest newAcc (mergeSize*2) c
+    let  sort alist (c: IComparer<_>) =
+        match alist with
+        | [] -> []
+        | _::[] -> alist
+        | h1::h2::[] -> 
+            sort2 h1 h2 alist c
+        | _::_::_::[] -> 
+            sortImpl alist [] 1 c
+        | _ -> sortImpl alist [] 2 c
+
+
     let countBy (dict:Dictionary<_, int>) (keyf:'T -> 'Key) = 
         // No need to dispose enumerator Dispose does nothing.
         let mutable ie = dict.GetEnumerator()
