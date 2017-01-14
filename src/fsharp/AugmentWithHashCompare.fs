@@ -620,10 +620,18 @@ let mkUnionHashWithComparer g tcref (tycon:Tycon) compe =
     let m = tycon.Range
     let ucases = tycon.UnionCasesAsList
     let tinst,ty = mkMinimalTy g tcref
+    let recursiveCases, _ =
+        ucases 
+        |> List.map (fun u -> u, u.RecdFields |> List.where(fun f -> f.FormalType.ToString() = ty.ToString()))
+        |> List.partition (fun u -> snd u |> List.length <> 0)
+    let isListLike = 
+        match recursiveCases with
+        | [h] -> snd h |> List.length = 1
+        | _ -> false
     let thisv,thise = mkThisVar g m ty
     let mbuilder = new MatchBuilder(NoSequencePointAtInvisibleBinding,m ) 
     let accv,acce = mkMutableCompGenLocal m "i" g.int_ty                  
-    let mkCase i ucase1 = 
+    let mkCase i ucase1  = 
         let c1ref = tcref.MakeNestedUnionCaseRef ucase1 
         let m = c1ref.Range 
         if ucase1.IsNullary then None 
